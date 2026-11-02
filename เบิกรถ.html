@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบเบิก-คืนกุญแจรถมอเตอร์ไซค์ 1กถ ตาก 2491</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            background-color: #f1f5f9;
+            color: #334155;
+            width: 100vw;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .license-plate {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 4px solid #0f172a;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 0 0 2px #ffffff;
+            position: relative;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 18s linear infinite;
+        }
+
+        @keyframes bellShake {
+            0% { transform: rotate(0); }
+            15% { transform: rotate(18deg); }
+            30% { transform: rotate(-18deg); }
+            45% { transform: rotate(12deg); }
+            60% { transform: rotate(-12deg); }
+            75% { transform: rotate(6deg); }
+            85% { transform: rotate(-6deg); }
+            100% { transform: rotate(0); }
+        }
+
+        .bell-ring {
+            animation: bellShake 1.2s infinite ease-in-out;
+            transform-origin: top center;
+        }
+
+        @keyframes keyFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(5deg); }
+        }
+
+        .animate-key-float {
+            animation: keyFloat 2.5s ease-in-out infinite;
+        }
+
+        @keyframes motoDrive {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-2px) rotate(1deg); }
+            75% { transform: translateY(1px) rotate(-1deg); }
+        }
+
+        .animate-moto {
+            animation: motoDrive 0.4s infinite ease-in-out;
+        }
+
+        @keyframes roadMove {
+            0% { background-position: 0 0; }
+            100% { background-position: -40px 0; }
+        }
+
+        .animated-road {
+            background: repeating-linear-gradient(
+                90deg,
+                #475569 0px,
+                #475569 15px,
+                transparent 15px,
+                transparent 30px
+            );
+            background-size: 40px 4px;
+            animation: roadMove 0.4s linear infinite;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen pb-10">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-gradient-to-r from-sky-600 to-blue-700 text-white p-4 shadow-lg sticky top-0 z-40 w-full">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                    <i class="fa-solid fa-motorcycle text-xl text-sky-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">ระบบเบิก-คืนกุญแจ</h1>
+                    <p class="text-[11px] text-sky-100 font-light">เบิก-คืนรถจักรยานยนต์ส่วนกลาง</p>
+                </div>
+            </div>
+
+            <!-- Bell Notification Button -->
+            <button onclick="toggleHistoryModal(true)" class="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/25 active:scale-95 transition flex items-center justify-center border border-white/20">
+                <i id="bellIcon" class="fa-solid fa-bell text-lg text-amber-300"></i>
+                <span id="unreadBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border-2 border-blue-700 shadow-md hidden">
+                    0
+                </span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Running Marquee Banner -->
+    <div class="bg-amber-500 text-slate-900 font-bold text-xs py-1.5 overflow-hidden whitespace-nowrap shadow-inner relative z-30">
+        <div class="max-w-md mx-auto flex items-center px-4">
+            <span class="bg-slate-900 text-amber-400 px-2 py-0.5 rounded text-[10px] mr-2 shrink-0 z-10 shadow">ประกาศ</span>
+            <div class="overflow-hidden w-full relative">
+                <div id="marqueeText" class="animate-marquee">กำลังโหลดประกาศจาก Google Sheets...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="max-w-md mx-auto w-full p-4 space-y-4 flex-1">
+
+        <!-- Motorcycle Status Card -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/80 text-center space-y-3 relative overflow-hidden">
+            <div class="flex justify-between items-center text-xs font-semibold text-slate-400">
+                <span class="uppercase tracking-wider">ป้ายทะเบียนรถ</span>
+                <span class="bg-slate-100 px-2.5 py-0.5 rounded-full text-slate-600 font-medium">จักรยานยนต์</span>
+            </div>
+
+            <!-- License Plate Graphics -->
+            <div class="license-plate max-w-[220px] mx-auto rounded-2xl p-2.5 text-slate-900">
+                <div class="text-[9px] text-slate-400 font-bold tracking-widest uppercase">THAILAND</div>
+                <div class="text-2xl font-black tracking-tight leading-none mb-0.5 text-slate-900">1กถ</div>
+                <div class="text-[11px] font-bold tracking-widest text-slate-600 my-0.5">ตาก</div>
+                <div class="text-3xl font-black tracking-wider leading-none text-slate-900">2491</div>
+            </div>
+
+            <!-- Dynamic Animated Status Banner -->
+            <div id="statusContainer" class="pt-1">
+                <!-- Status loads dynamically -->
+            </div>
+        </div>
+
+        <!-- Active Checkout Info Card (Visible only when key is checked out) -->
+        <div id="activeCheckoutCard" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-4 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-amber-900 border-b border-amber-200/80 pb-2.5">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                    ข้อมูลผู้กำลังใช้งาน
+                </span>
+                <span id="activeTimerBadge" class="text-xs font-extrabold text-orange-600 bg-orange-100 px-2.5 py-1 rounded-full shadow-sm">⏱️ 0 นาที</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <div class="bg-white/80 backdrop-blur-sm p-2.5 rounded-xl border border-amber-100">
+                    <span class="text-[11px] text-slate-500 block">ผู้เบิกกุญแจ</span>
+                    <span id="activeName" class="font-bold text-slate-800 text-sm block truncate"></span>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm p-2.5 rounded-xl border border-amber-100">
+                    <span class="text-[11px] text-slate-500 block mb-1">สังกัด / กะ</span>
+                    <div class="flex items-center gap-1 flex-wrap">
+                        <span id="activeTeam" class="font-bold px-2 py-0.5 rounded-md text-[11px]"></span>
+                        <span id="activeShift" class="font-bold px-2 py-0.5 rounded-md text-[11px]"></span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="returnKey()" id="returnBtn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2 text-sm">
+                <i class="fa-solid fa-key text-base"></i>
+                นำกุญแจมาคืน
+            </button>
+        </div>
+
+        <!-- Checkout Form Card (Visible when key is available) -->
+        <div id="checkoutFormCard" class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+            <h2 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2.5 flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                ฟอร์มเบิกกุญแจรถ
+            </h2>
+
+            <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-3">
+                <div>
+                    <label for="borrowerName" class="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล ผู้เบิก <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <input type="text" id="borrowerName" required placeholder="กรอกชื่อผู้เบิกกุญแจ" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none text-xs transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">ทีม / กลุ่ม <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="team" value="ทีม A" checked class="peer sr-only">
+                            <div class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 peer-checked:border-sky-500 peer-checked:bg-sky-50 peer-checked:text-sky-700 font-medium transition text-xs flex flex-col items-center gap-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                ทีม A
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="team" value="ทีม B" class="peer sr-only">
+                            <div class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 peer-checked:border-purple-500 peer-checked:bg-purple-50 peer-checked:text-purple-700 font-medium transition text-xs flex flex-col items-center gap-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                ทีม B
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="team" value="ทีม C" class="peer sr-only">
+                            <div class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 font-medium transition text-xs flex flex-col items-center gap-0.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                ทีม C
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">กะการทำงาน <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="shift" value="กะเช้า" checked class="peer sr-only">
+                            <div class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-800 font-medium transition text-xs">
+                                <i class="fa-solid fa-sun text-amber-500"></i>
+                                กะเช้า
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="shift" value="กะดึก" class="peer sr-only">
+                            <div class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-800 font-medium transition text-xs">
+                                <i class="fa-solid fa-moon text-indigo-500"></i>
+                                กะดึก
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-sky-600/20 active:scale-[0.98] transition flex items-center justify-center gap-2 text-sm mt-1">
+                    <i class="fa-solid fa-key text-sky-200"></i>
+                    ยืนยันการเบิกกุญแจ
+                </button>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- History Drawer / Modal -->
+    <div id="historyModal" onclick="checkOutsideClose(event)" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none flex justify-end p-0">
+        <div id="modalBox" class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl transform transition-transform duration-300 translate-x-full">
+            
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">ประวัติการเบิก-คืนกุญแจ</h3>
+                        <p class="text-[10px] text-slate-400">ซิงก์ข้อมูลผ่าน Google Sheets</p>
+                    </div>
+                </div>
+                <button onclick="toggleHistoryModal(false)" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition text-xs">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="p-3 bg-white border-b border-slate-100 flex items-center justify-between gap-2">
+                <label for="monthFilter" class="text-xs font-medium text-slate-600 flex items-center gap-1 shrink-0">
+                    <i class="fa-solid fa-calendar-days text-sky-600"></i>
+                    เลือกเดือน:
+                </label>
+                <select id="monthFilter" onchange="changeMonthFilter()" class="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-sky-500 outline-none w-full max-w-[180px]">
+                </select>
+            </div>
+
+            <!-- Top 3 Ranking Section -->
+            <div id="topThreeContainer" class="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 hidden">
+                <div class="flex items-center gap-1.5 mb-2 text-amber-900 font-bold text-xs">
+                    <i class="fa-solid fa-trophy text-amber-500"></i>
+                    อันดับผู้ใช้งานสูงสุด (Top 3 ประจำเดือน)
+                </div>
+                <div id="topThreeList" class="grid grid-cols-3 gap-2">
+                    <!-- Top 3 items rendered here -->
+                </div>
+            </div>
+
+            <div id="modalHistoryList" class="p-3 overflow-y-auto space-y-2.5 flex-1 bg-slate-50">
+                <p class="text-center text-slate-400 py-6 text-xs">กำลังโหลดข้อมูล...</p>
+            </div>
+
+            <div class="p-3 border-t border-slate-100 bg-white flex justify-between items-center text-[11px] text-slate-400">
+                <span id="historyCountText">0 รอบการใช้งาน</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toastNotification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md text-white text-xs px-3.5 py-2.5 rounded-xl shadow-xl flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50 max-w-[90%] border border-white/10">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="toastMessage">แจ้งเตือน</span>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxuMv1qq8-O6LjpXxJrlZpk_XaZMmuxDA4qBNwSBrvie1mQFhozW4rRO8ZYBUJy-zzA/exec";
+
+        let state = { status: 'returned', currentUser: '', currentTeam: '', currentShift: '', marquee: '', history: [] };
+        let unreadCount = 0;
+        let selectedMonthKey = getCurrentMonthKey(); // ล็อกค่าเริ่มต้นเป็นเดือนปัจจุบันเสมอ
+        let activeStartTime = null; 
+        let timerInterval = null;
+
+        window.onload = function() {
+            fetchState();
+            setInterval(fetchState, 5000);
+            startGlobalClock();
+        };
+
+        function getCurrentMonthKey() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        function jsonp(url, callbackName) {
+            return new Promise((resolve, reject) => {
+                window[callbackName] = (data) => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        document.body.removeChild(script);
+                    }
+                    resolve(data);
+                };
+                const script = document.createElement('script');
+                script.src = `${url}${url.includes('?') ? '&' : '?'}callback=${callbackName}`;
+                script.onerror = (err) => {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        document.body.removeChild(script);
+                    }
+                    reject(err);
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        async function fetchState() {
+            try {
+                const cbName = 'cb_' + Math.round(100000 * Math.random());
+                const data = await jsonp(WEB_APP_URL, cbName);
+                state = data;
+                
+                if (state.status === 'borrowed' && state.history && state.history.length > 0) {
+                    const latest = state.history[0];
+                    if (latest.action === 'borrow') {
+                        activeStartTime = parseThaiDateTime(latest.timestamp).getTime();
+                    }
+                } else {
+                    activeStartTime = null;
+                }
+
+                updateUI();
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+        }
+
+        function parseThaiDateTime(str) {
+            try {
+                const parts = str.split(', ');
+                const dateParts = parts[0].split('/');
+                const timeParts = parts[1].split(':');
+                const day = parseInt(dateParts[0], 10);
+                const month = parseInt(dateParts[1], 10) - 1;
+                const year = parseInt(dateParts[2], 10) - 543;
+                const hour = parseInt(timeParts[0], 10);
+                const minute = parseInt(timeParts[1], 10);
+                const second = parseInt(timeParts[2] || 0, 10);
+                return new Date(year, month, day, hour, minute, second);
+            } catch (e) {
+                return new Date();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('marqueeText').textContent = state.marquee || 'ยินดีต้อนรับสู่ระบบเบิก-คืนกุญแจรถจักรยานยนต์ส่วนกลาง';
+            renderStatusCard();
+            renderBellNotification();
+            setupMonthDropdown();
+            renderModalHistory();
+        }
+
+        function startGlobalClock() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                if (state.status === 'borrowed' && activeStartTime) {
+                    const now = new Date().getTime();
+                    let diff = Math.floor((now - activeStartTime) / 1000);
+                    if (diff < 0) diff = 0;
+
+                    const hours = Math.floor(diff / 3600);
+                    const minutes = Math.floor((diff % 3600) / 60);
+
+                    const timerBadge = document.getElementById('activeTimerBadge');
+                    if (timerBadge) {
+                        if (hours > 0) {
+                            timerBadge.textContent = `⏱️ ${hours} ชม. ${minutes} นาที`;
+                        } else {
+                            timerBadge.textContent = `⏱️ ${minutes} นาที`;
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        function renderStatusCard() {
+            const container = document.getElementById('statusContainer');
+            const activeCard = document.getElementById('activeCheckoutCard');
+            const formCard = document.getElementById('checkoutFormCard');
+
+            if (state.status === 'borrowed') {
+                container.innerHTML = `
+                    <div class="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-bold backdrop-blur-sm">
+                                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                กำลังสัญจรอยู่
+                            </span>
+                            <span class="text-[11px] text-orange-100 font-medium">เบิกกุญแจแล้ว</span>
+                        </div>
+                        
+                        <div class="relative h-12 my-1.5 flex items-center justify-center overflow-hidden rounded-xl bg-slate-800/20">
+                            <div class="absolute bottom-2 left-0 right-0 h-1 animated-road"></div>
+                            <div class="relative animate-moto flex items-center gap-1">
+                                <div class="absolute -left-3 bottom-0 w-2 h-2 rounded-full bg-white/40 smoke-particle"></div>
+                                <i class="fa-solid fa-motorcycle text-2xl text-white drop-shadow-md"></i>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-orange-100 mt-1">ผู้ถือครอง: <strong>${escapeHtml(state.currentUser)}</strong> (${state.currentTeam})</p>
+                    </div>
+                `;
+
+                document.getElementById('activeName').textContent = state.currentUser;
+                
+                const teamEl = document.getElementById('activeTeam');
+                teamEl.textContent = state.currentTeam;
+                teamEl.className = `font-bold px-1.5 py-0.5 rounded-md text-[11px] ${getTeamBadgeStyle(state.currentTeam)}`;
+
+                const shiftEl = document.getElementById('activeShift');
+                shiftEl.textContent = state.currentShift;
+                shiftEl.className = `font-bold px-1.5 py-0.5 rounded-md text-[11px] ${getShiftBadgeStyle(state.currentShift)}`;
+
+                activeCard.classList.remove('hidden');
+                formCard.classList.add('hidden');
+            } else {
+                container.innerHTML = `
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-3.5 text-white shadow-md flex items-center justify-between relative overflow-hidden">
+                        <div class="text-left space-y-0.5 z-10">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-bold backdrop-blur-sm">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
+                                สถานะ: คืนแล้ว
+                            </span>
+                            <h3 class="font-extrabold text-base text-white">กุญแจพร้อมใช้งาน</h3>
+                            <p class="text-[11px] text-emerald-100">อยู่ที่จุดแขวนกุญแจส่วนกลาง</p>
+                        </div>
+                        <div class="text-3xl text-emerald-200 opacity-90 animate-key-float z-10 mr-1">
+                            <i class="fa-solid fa-key text-amber-300 drop-shadow"></i>
+                        </div>
+                    </div>
+                `;
+
+                activeCard.classList.add('hidden');
+                formCard.classList.remove('hidden');
+            }
+        }
+
+        function renderBellNotification() {
+            const bellIcon = document.getElementById('bellIcon');
+            const unreadBadge = document.getElementById('unreadBadge');
+
+            if (unreadCount > 0) {
+                bellIcon.classList.add('bell-ring');
+                unreadBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                unreadBadge.classList.remove('hidden');
+            } else {
+                bellIcon.classList.remove('bell-ring');
+                unreadBadge.classList.add('hidden');
+            }
+        }
+
+        async function handleCheckout(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> กำลังบันทึก...';
+
+            const name = document.getElementById('borrowerName').value.trim();
+            const team = document.querySelector('input[name="team"]:checked')?.value || 'ทีม A';
+            const shift = document.querySelector('input[name="shift"]:checked')?.value || 'กะเช้า';
+
+            if (!name) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-key text-sky-200"></i> ยืนยันการเบิกกุญแจ';
+                return;
+            }
+
+            const now = new Date();
+            const timestamp = now.toLocaleString('th-TH');
+            const monthKey = getCurrentMonthKey();
+
+            const params = new URLSearchParams({
+                actionType: 'borrow',
+                name, team, shift, timestamp, monthKey
+            });
+
+            try {
+                const cbName = 'cb_send_' + Math.round(100000 * Math.random());
+                await jsonp(`${WEB_APP_URL}?${params.toString()}`, cbName);
+                document.getElementById('borrowerName').value = '';
+                await fetchState();
+                showToast('บันทึกการเบิกกุญแจเรียบร้อย!', 'success');
+            } catch (err) {
+                showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-key text-sky-200"></i> ยืนยันการเบิกกุญแจ';
+            }
+        }
+
+        async function returnKey() {
+            const returnBtn = document.getElementById('returnBtn');
+            returnBtn.disabled = true;
+            returnBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> กำลังบันทึกการคืน...';
+
+            const now = new Date();
+            const timestamp = now.toLocaleString('th-TH');
+            const monthKey = getCurrentMonthKey();
+
+            const params = new URLSearchParams({
+                actionType: 'return',
+                name: state.currentUser,
+                team: state.currentTeam,
+                shift: state.currentShift,
+                timestamp, monthKey
+            });
+
+            try {
+                const cbName = 'cb_ret_' + Math.round(100000 * Math.random());
+                await jsonp(`${WEB_APP_URL}?${params.toString()}`, cbName);
+                unreadCount += 1;
+                activeStartTime = null;
+
+                await fetchState();
+                showToast('คืนกุญแจเรียบร้อยแล้ว!', 'success');
+            } catch (err) {
+                showToast('เกิดข้อผิดพลาดในการคืนกุญแจ', 'error');
+            } finally {
+                returnBtn.disabled = false;
+                returnBtn.innerHTML = '<i class="fa-solid fa-key text-base"></i> นำกุญแจมาคืน';
+            }
+        }
+
+        function toggleHistoryModal(show) {
+            const modal = document.getElementById('historyModal');
+            const modalBox = document.getElementById('modalBox');
+
+            if (show) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100');
+                modalBox.classList.remove('translate-x-full');
+
+                unreadCount = 0;
+                renderBellNotification();
+            } else {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modalBox.classList.add('translate-x-full');
+            }
+        }
+
+        function checkOutsideClose(event) {
+            const modalBox = document.getElementById('modalBox');
+            if (!modalBox.contains(event.target)) {
+                toggleHistoryModal(false);
+            }
+        }
+
+        function setupMonthDropdown() {
+            const select = document.getElementById('monthFilter');
+            const monthsSet = new Set();
+            
+            // บังคับให้เดือนปัจจุบันอยู่ในลิสต์เสมอ
+            monthsSet.add(getCurrentMonthKey());
+
+            if (state.history) {
+                state.history.forEach(item => {
+                    if (item.monthKey) monthsSet.add(item.monthKey);
+                });
+            }
+
+            const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+            select.innerHTML = sortedMonths.map(mKey => {
+                const [y, m] = mKey.split('-');
+                const monthName = getThaiMonthName(parseInt(m, 10) - 1);
+                const yearBE = parseInt(y, 10) + 543;
+                return `<option value="${mKey}" ${mKey === selectedMonthKey ? 'selected' : ''}>${monthName} ${yearBE}</option>`;
+            }).join('');
+        }
+
+        function changeMonthFilter() {
+            const select = document.getElementById('monthFilter');
+            selectedMonthKey = select.value;
+            renderModalHistory();
+        }
+
+        function renderModalHistory() {
+            const container = document.getElementById('modalHistoryList');
+            const countText = document.getElementById('historyCountText');
+            const topThreeContainer = document.getElementById('topThreeContainer');
+            const topThreeList = document.getElementById('topThreeList');
+
+            const filtered = (state.history || []).filter(item => item.monthKey === selectedMonthKey);
+
+            const pairedSessions = [];
+            const borrows = [];
+            const returns = [];
+
+            filtered.forEach(item => {
+                if (item.action === 'borrow') {
+                    borrows.push({ ...item, matched: false });
+                } else if (item.action === 'return') {
+                    returns.push({ ...item, matched: false });
+                }
+            });
+
+            borrows.sort((a, b) => parseThaiDateTime(b.timestamp) - parseThaiDateTime(a.timestamp));
+            returns.sort((a, b) => parseThaiDateTime(b.timestamp) - parseThaiDateTime(a.timestamp));
+
+            borrows.forEach(bItem => {
+                let foundReturnIndex = returns.findIndex(rItem => !rItem.matched && rItem.name === bItem.name && parseThaiDateTime(rItem.timestamp) >= parseThaiDateTime(bItem.timestamp));
+                if (foundReturnIndex === -1) {
+                    foundReturnIndex = returns.findIndex(rItem => !rItem.matched && rItem.name === bItem.name);
+                }
+
+                if (foundReturnIndex !== -1) {
+                    bItem.returnItem = returns[foundReturnIndex];
+                    returns[foundReturnIndex].matched = true;
+                } else {
+                    bItem.returnItem = null;
+                }
+                pairedSessions.push(bItem);
+            });
+
+            returns.forEach(rItem => {
+                if (!rItem.matched) {
+                    pairedSessions.push({
+                        name: rItem.name,
+                        team: rItem.team,
+                        shift: rItem.shift,
+                        timestamp: '-',
+                        returnItem: rItem,
+                        isOrphanReturn: true
+                    });
+                }
+            });
+
+            pairedSessions.sort((a, b) => {
+                const timeA = parseThaiDateTime(a.returnItem ? a.returnItem.timestamp : a.timestamp);
+                const timeB = parseThaiDateTime(b.returnItem ? b.returnItem.timestamp : b.timestamp);
+                return timeB - timeA;
+            });
+
+            countText.textContent = `${pairedSessions.length} รอบการใช้งาน`;
+
+            const borrowCounts = {};
+            filtered.forEach(item => {
+                if (item.action === 'borrow' && item.name) {
+                    borrowCounts[item.name] = (borrowCounts[item.name] || 0) + 1;
+                }
+            });
+
+            const sortedTop = Object.entries(borrowCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+            if (sortedTop.length > 0) {
+                topThreeContainer.classList.remove('hidden');
+                const medals = ['🥇', '🥈', '🥉'];
+                const bgColors = ['bg-amber-100 border-amber-300 text-amber-900', 'bg-slate-100 border-slate-300 text-slate-800', 'bg-orange-100 border-orange-200 text-orange-900'];
+                
+                topThreeList.innerHTML = sortedTop.map(([name, count], index) => `
+                    <div class="${bgColors[index]} border rounded-xl p-2 text-center flex flex-col justify-between shadow-xs">
+                        <span class="text-xs font-bold truncate">${medals[index]} ${escapeHtml(name)}</span>
+                        <span class="text-[10px] font-semibold opacity-75 mt-0.5">${count} ครั้ง</span>
+                    </div>
+                `).join('');
+            } else {
+                topThreeContainer.classList.add('hidden');
+            }
+
+            if (pairedSessions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-xs">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+                        ไม่มีประวัติการเบิกกุญแจในเดือนนี้
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pairedSessions.map(session => {
+                let durationText = '';
+                if (session.returnItem && session.timestamp !== '-') {
+                    const borrowDate = parseThaiDateTime(session.timestamp);
+                    const returnDate = parseThaiDateTime(session.returnItem.timestamp);
+                    const diffMin = Math.max(0, Math.floor((returnDate - borrowDate) / 60000));
+                    const h = Math.floor(diffMin / 60);
+                    const m = diffMin % 60;
+                    durationText = h > 0 ? `ใช้ไป ${h} ชม. ${m} นาที` : `ใช้ไป ${m} นาที`;
+                } else if (!session.returnItem) {
+                    durationText = 'กำลังใช้งานอยู่...';
+                }
+
+                return `
+                    <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-circle text-slate-400"></i>
+                                ${escapeHtml(session.name)}
+                            </span>
+                            <div class="flex gap-1 items-center">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] ${getTeamBadgeStyle(session.team)} font-medium">${session.team}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] ${getShiftBadgeStyle(session.shift)} font-medium">${session.shift}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px]">
+                            <div class="bg-orange-50/50 p-2 rounded-lg border border-orange-100">
+                                <div class="text-orange-600 font-bold flex items-center gap-1 mb-0.5">
+                                    <i class="fa-solid fa-key"></i> เบิก
+                                </div>
+                                <div class="text-slate-600 truncate">${session.timestamp}</div>
+                            </div>
+                            <div class="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                                <div class="text-emerald-600 font-bold flex items-center gap-1 mb-0.5">
+                                    <i class="fa-solid fa-rotate-left"></i> คืน
+                                </div>
+                                <div class="text-slate-600 truncate">${session.returnItem ? session.returnItem.timestamp : '<span class="text-orange-500 font-medium animate-pulse">ยังไม่คืน</span>'}</div>
+                            </div>
+                        </div>
+
+                        <div class="text-right text-[10px] font-bold text-slate-500 pt-0.5">
+                            ⏱️ ${durationText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = message;
+            if (type === 'success') {
+                iconEl.className = 'fa-solid fa-circle-check text-emerald-400 text-sm';
+            } else {
+                iconEl.className = 'fa-solid fa-circle-exclamation text-red-400 text-sm';
+            }
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function getTeamBadgeStyle(team) {
+            switch(team) {
+                case 'ทีม A': return 'bg-blue-100 text-blue-700 border border-blue-200';
+                case 'ทีม B': return 'bg-purple-100 text-purple-700 border border-purple-200';
+                case 'ทีม C': return 'bg-amber-100 text-amber-700 border border-amber-200';
+                default: return 'bg-slate-100 text-slate-700 border border-slate-200';
+            }
+        }
+
+        function getShiftBadgeStyle(shift) {
+            if (shift === 'กะเช้า') {
+                return 'bg-amber-100 text-amber-800 border border-amber-200';
+            }
+            return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+        }
+
+        function getThaiMonthName(monthIndex) {
+            const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            return months[monthIndex];
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
